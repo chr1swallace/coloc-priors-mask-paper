@@ -1,0 +1,4 @@
+qR.rb  -t "06:00:00" -a CWALLACE-SL2-CPU -p skylake-himem -j gtex -y 1-22 -n chr -r gtex.R
+for i in `seq 1 22`; do
+    qlines.rb -c 1 -t "02:00:00" -r  /home/cew54/scratch/gtex-gfm/chr${i}/runme.sh
+done
