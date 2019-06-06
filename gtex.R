@@ -12,7 +12,7 @@ args <- getArgs(defaults=list(chr=14),
 SIZE=100
 message("\n! ---------------------------------------")
 message("! ",date())
-message("! gtex-eqtl.R running with args:")
+message("! gtex.R running with args:")
 print(args)
 message("! ---------------------------------------\n")
 
@@ -58,7 +58,7 @@ wh <- which(is.na(cs0[,"z.HWE"]) |
             cs0[,"Certain.calls"]<0.75 | 
             abs(cs0[,"z.HWE"])>4)
 if(length(wh)) {
-    message("Dropping ",length(wh)," SNPs with |z.HWE|>5, MAF < 0.001 or call rate <0.99")
+    message("Dropping ",length(wh)," SNPs with |z.HWE|>4, MAF < 0.01 or call rate <0.99")
     X <- X[,-wh]
 }
 dim(X)
@@ -71,8 +71,8 @@ NSAVE=5000
 NCHAINS=5
 NEXP=3
 COMFILE <- paste0("/home/cew54/scratch/gtex-gfm/chr",args$chr,"/runme.sh")
-#if(file.exists(COMFILE))
-#    unlink(COMFILE)
+if(file.exists(COMFILE))
+   unlink(COMFILE)
 
 message("Expecting jobs: ",ncol(E))
 files=list.files( paste0("/home/cew54/scratch/gtex-gfm/chr",args$chr))
@@ -98,26 +98,26 @@ for(j in 1:ncol(E)) {
     
     f.data <- file.path(outd,"data.RData")
     f.par <- file.path(outd, "par.xml")
-    if(file.exists(f.par) ) {
+    f.out <- file.path(outd, "out_500000_output_marg_prob_incl.txt")
+    if(!file.exists(f.out) ) {
 #        message("output file already exists, skipping: ",f.par)
-	next()
+        use <- which( (X@snps$position > expr$start[j] - W) & (X@snps$position < expr$start[j] + W) )
+        sX <- sm(X)[,use]
+        tags <- tag(sX, method="single", tag.threshold=TAG.R2)
+        message("after tagging at ",TAG.R2,", matrix now has ",length(unique(tags(tags)))," SNPs.")
+        ## save(tags, file=f.tags)
+        DATA <- sX[, unique(tags(tags))]
+        ## save data
+        y <- E[,j]
+        snps <- X@snps[colnames(sX),]
+        thisgene <- expr[j,]
+        save(thisgene,snps,file=f.data)
+        message("Samples: ", length(y))
+        message("SNPs: ",ncol(DATA))
+        coms <- run.bvs(X=DATA,Y=y, covars=m,
+                        gdir=outd,nsweep=NSWEEP, family="gaussian",tag.r2=NA,
+                        nsave=NSAVE,nchains=NCHAINS,nexp=NEXP,run=FALSE)
+        cat(coms,file=COMFILE,sep="\n",append=TRUE)
     }
-    use <- which( (X@snps$position > expr$start[j] - W) & (X@snps$position < expr$start[j] + W) )
-    sX <- sm(X)[,use]
-    tags <- tag(sX, method="single", tag.threshold=TAG.R2)
-    message("after tagging at ",TAG.R2,", matrix now has ",length(unique(tags(tags)))," SNPs.")
-    ## save(tags, file=f.tags)
-    DATA <- sX[, unique(tags(tags))]
-    ## save data
-    y <- E[,j]
-    snps <- X@snps[colnames(sX),]
-    thisgene <- expr[j,]
-    save(thisgene,snps,file=f.data)
-    message("Samples: ", length(y))
-    message("SNPs: ",ncol(DATA))
-    coms <- run.bvs(X=DATA,Y=y, covars=m,
-                    gdir=outd,nsweep=NSWEEP, family="gaussian",tag.r2=NA,
-                    nsave=NSAVE,nchains=NCHAINS,nexp=NEXP,run=FALSE)
-    cat(coms,file=COMFILE,sep="\n",append=TRUE)
 }
 

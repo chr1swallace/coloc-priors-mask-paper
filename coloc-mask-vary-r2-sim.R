@@ -5,7 +5,7 @@ source("~/Projects/coloc-cond-mask/load-hapdata.R")
 library(randomFunctions)
 library(magrittr)
 devtools::load_all("~/RP/coloc")
-args <- getArgs(defaults=list(N=1000,NSIM=100,NCV=3,SPECIAL=0,ld="highld",pop="eur"),
+args <- getArgs(defaults=list(N=1000,NSIM=100,NCV=4,NSNP=250,SPECIAL=4,ld="highld",pop="eur"),
                 numeric=c("N","NSIM","NCV"))
 
 hdata <- hread(args$ld,args$pop)
@@ -13,6 +13,12 @@ LD <- hdata$LD
 LD.alt <- hdata$LD.alt
 dfsnps <- hdata$snps
 h <- hdata$h
+if(args$NSNP < nrow(dfsnps)) {
+    dfsnps <- dfsnps[1:args$NSNP,]
+    h <- h[,1:args$NSNP]
+    LD <- LD[1:args$NSNP,1:args$NSNP]
+}
+
 
 ## XX <- new("SnpMatrix", as.matrix(freq))S""
 
@@ -46,7 +52,7 @@ valmaxz <- function(D) {
     max(z)
 }
 
-R2 <- c(0.01,0.02,0.03)
+R2 <- c(0.01,0.03,0.05)
 
 addmethod <- function(L,meth) {
     dt <- sapply(L, is.data.table)  %>% which()
@@ -55,6 +61,13 @@ addmethod <- function(L,meth) {
     dt <- rbindlist(L[dt])
     dt[,method:=meth]
     copy(dt)
+}
+
+plotter <- function(A,nCV) {
+    p <- (A$beta/sqrt(A$varbeta))  %>% abs()  %>% pnorm(.,lower=FALSE)
+    mycol <- ifelse(A$snp %in% nCV, "red","black")
+    plot(seq_along(A$beta),-log10(p/2),col=mycol)
+    ## points(nCV,-log10(p[nCV]/2),col="red")
 }
 
     ## simulations options
@@ -149,7 +162,12 @@ runone <- function(isim=0) {
 ## stepwise regressions
     A1 <- makeD(y1,X1) # all signals, first dataset
     A2 <- makeD(y2,X2) # all signals, first dataset
-                 
+
+    ## par(mfrow=c(2,1))
+    ## plotter(A1,nCV1)
+    ## plotter(A2,nCV2)
+    
+    
     ## indep analysis
     ## csignals1 <- finemap.indep.signals(A1,LD=LD,aligned=TRUE,zthr=4.89,maxhits=2)
     ## csignals2 <- finemap.indep.signals(A2,LD=LD,aligned=TRUE,zthr=4.89,maxhits=2)
@@ -170,12 +188,12 @@ runone <- function(isim=0) {
                       p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
           cbind(.,r2.process=r2,r2.finemap=r2)
     })  %>% addmethod("mask")
-    res.alt <- lapply(R2, function(r2) { 
-            coloc.signals(c(A1,list(method="mask")),
-                          c(A2,list(method="mask")),LD=LD.alt,
-                          p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
-              cbind(.,r2.process=r2,r2.finemap=r2)
-    })  %>% addmethod("mask.alt")
+    ## res.alt <- lapply(R2, function(r2) { 
+    ##         coloc.signals(c(A1,list(method="mask")),
+    ##                       c(A2,list(method="mask")),LD=LD.alt,
+    ##                       p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
+    ##           cbind(.,r2.process=r2,r2.finemap=r2)
+    ## })  %>% addmethod("mask.alt")
      ## result  <- lapply(R2, function(r2) {
     ##     lapply(seq_along(R2), function(i) {
     ##         if(all(signals1[[i]] <= 4.89) & all(signals2[[i]] <= 4.89))
@@ -195,12 +213,12 @@ runone <- function(isim=0) {
                           p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
               cbind(.,r2.process=r2,r2.finemap=r2)
     })  %>% addmethod("condmask")
-    cres1.alt <- lapply(R2, function(r2) { 
-          coloc.signals(c(A1,list(method="cond")),
-                          c(A2,list(method="mask")),LD=LD.alt,
-                          p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
-              cbind(.,r2.process=r2,r2.finemap=r2)
-    }) %>% addmethod("condmask.alt")
+   ##  cres1.alt <- lapply(R2, function(r2) { 
+   ##        coloc.signals(c(A1,list(method="cond")),
+   ##                        c(A2,list(method="mask")),LD=LD.alt,
+   ##                        p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
+   ##            cbind(.,r2.process=r2,r2.finemap=r2)
+   ##  }) %>% addmethod("condmask.alt")
      
    ## cond-mask, variable thresholds
     cres2 <- lapply(R2, function(r2) { 
@@ -210,26 +228,26 @@ runone <- function(isim=0) {
               cbind(.,r2.process=r2,r2.finemap=r2)
     })  %>% addmethod("maskcond")
     
-    cres2.alt <- lapply(R2, function(r2) { 
-            coloc.signals(c(A1,list(method="mask")),
-                          c(A2,list(method="cond")),LD=LD.alt,
-                          p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
-              cbind(.,r2.process=r2,r2.finemap=r2)
-    })  %>% addmethod("maskcond.alt")
+   ##  cres2.alt <- lapply(R2, function(r2) { 
+   ##          coloc.signals(c(A1,list(method="mask")),
+   ##                        c(A2,list(method="cond")),LD=LD.alt,
+   ##                        p12=1e-6,zthr=4.89,maxhits=2,r2thr=r2) %>%
+   ##            cbind(.,r2.process=r2,r2.finemap=r2)
+   ##  })  %>% addmethod("maskcond.alt")
     
      ## cond-cond, no thresholds
-    cond.alt <- coloc.signals(A1,A2,LD=LD.alt,method="cond",p12=1e-6,zthr=4.89,maxhits=2)
-    cond.alt$method <- "cond.alt"
+    ## cond.alt <- coloc.signals(A1,A2,LD=LD.alt,method="cond",p12=1e-6,zthr=4.89,maxhits=2)
+    ## cond.alt$method <- "cond.alt"
     cond <- coloc.signals(A1,A2,LD=LD,method="cond",p12=1e-6,zthr=4.89,maxhits=2)
     cond$method <- "cond"
-    cond1 <- coloc.signals(c(A1,list(method="cond")),A2,LD=LD,p12=1e-6,zthr=4.89,maxhits=2)
-    cond1$method <- "cond1"
-    cond2 <- coloc.signals(A1,c(A2,list(method="cond")),LD=LD,p12=1e-6,zthr=4.89,maxhits=2)
-    cond2$method <- "cond2"
-    cond1.alt <- coloc.signals(c(A1,list(method="cond")),A2,LD=LD.alt,p12=1e-6,zthr=4.89,maxhits=2)
-    cond1.alt$method <- "cond1.alt"
-    cond2.alt <- coloc.signals(A1,c(A2,list(method="cond")),LD=LD.alt,p12=1e-6,zthr=4.89,maxhits=2)
-    cond2.alt$method <- "cond2.alt"
+    ## cond1 <- coloc.signals(c(A1,list(method="cond")),A2,LD=LD,p12=1e-6,zthr=4.89,maxhits=2)
+    ## cond1$method <- "cond1"
+    ## cond2 <- coloc.signals(A1,c(A2,list(method="cond")),LD=LD,p12=1e-6,zthr=4.89,maxhits=2)
+    ## cond2$method <- "cond2"
+    ## cond1.alt <- coloc.signals(c(A1,list(method="cond")),A2,LD=LD.alt,p12=1e-6,zthr=4.89,maxhits=2)
+    ## cond1.alt$method <- "cond1.alt"
+    ## cond2.alt <- coloc.signals(A1,c(A2,list(method="cond")),LD=LD.alt,p12=1e-6,zthr=4.89,maxhits=2)
+    ## cond2.alt$method <- "cond2.alt"
 
     ## single
     single <- coloc.process(dresults)  %>% as.data.table()
@@ -242,8 +260,10 @@ runone <- function(isim=0) {
     single[,hit2.margz:=z2[hit2]]
 
     result <- rbind(single,
-                    res,cres1,cres2,cond,cond1,cond2,
-                    res.alt,cres1.alt,cres2.alt,cond.alt,cond1.alt,cond2.alt,
+                    res,cres1,cres2,
+                    cond,#cond1,cond2,
+                    ## res.alt,cres1.alt,cres2.alt,
+                    ## cond.alt,cond1.alt,cond2.alt,
                     fill=TRUE)
     result[,r2.cvA1.hits:=LD[ hit1,nCV1[1] ]^2 ]
     result[,r2.cvB1.hits:=LD[ hit1,nCV1[2] ]^2 ]
@@ -271,7 +291,12 @@ nulls <- sapply(results,is.null)
 results  <- rbindlist(results[!nulls])
 results$NCV <- if(args$NCV==3) { "onetwo" } else { "twotwo" }
 results$ld <- args$ld
+results[,N:=args$N]
+results$NSNP <- args$NSNP
 
-patt <- "cvaryr2-v10"
+
+patt <- "cvaryr2-v13"
 tmp <- tempfile(tmpdir=d,pattern=patt,fileext=".RData")
 save(results,file=tmp)
+
+message("COMPLETE")

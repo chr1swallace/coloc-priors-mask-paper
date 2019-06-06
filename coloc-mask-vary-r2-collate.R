@@ -11,11 +11,12 @@ d <- COLOCINDEP
 
 ## read in haplotypes
 library(data.table)
-patt <- "cvaryr2-v10"
+patt <- "cvaryr2-v13"
 files <- list.files(d,pattern=patt,full=TRUE)
 message("files found: ",length(files))
 
 data <- lapply(files, function(f) {
+    ## cat(f,"\t")
     x=eval(as.symbol(load(f)))
     cols <- c(grep("PP",names(x),value=TRUE),"nsnps")
     x[ ,(cols) := lapply(.SD, unlist), .SDcols = cols] 
@@ -31,14 +32,17 @@ library(ggpubr)
 library(cowplot)
 library(ggridges)
 
+source("~/Projects/coloc-cond-mask/plotspec.R")
+
 ## pdf("~/kk.pdf",width=8,height=6)
 ## data[,H4.H3:=PP.H4.abf/PP.H3.abf]
 
 ## significance
 
 ## assign "hits"
-hit.r2thr <- 0.5
+hit.r2thr <- 0.8
 results <- copy(data)
+## results <- results[r2.finemap %in% c(NA,0.01),]
 results[,minz:=min(pmin(abs(hit1.margz),abs(hit2.margz))),by=c("f","isim","method","r2.finemap")]
 results[,pwr:=ifelse(minz < 9.35,"low","high")]
 ## results <- results[!is.na(r2.cvA1.hits),] # previous bad script included cond dt twice
@@ -48,9 +52,9 @@ results[r2.cvB1.hits > r2.cvA1.hits & r2.cvB1.hits > hit.r2thr, tested.cv1:="B"]
 results[r2.cvA2.hits > r2.cvB2.hits & r2.cvA2.hits > hit.r2thr, tested.cv2:="A"]
 results[r2.cvB2.hits > r2.cvA2.hits & r2.cvB2.hits > hit.r2thr, tested.cv2:="B"]
 ## results[pmax(r2.cvA1.hits,r2.cvB1.hits)>hit.r2thr,tested.cv1:=ifelse(r2.cvA1.hits > r2.cvB1.hits, "A", "B")]
-results[NCV=="onetwo" ,tested.cv2:="B"]
-results[NCV=="onetwo" & special==0 & tested.cv2=="A",tested.cv2:="C"]
-results[NCV=="twotwo" & special==0 & tested.cv2=="A", tested.cv2:="C"]
+results[NCV=="onetwo" ,tested.cv2:="A"]
+results[NCV=="onetwo" & special==0,tested.cv2:="C"]
+## results[NCV=="twotwo" & special==0 & tested.cv2=="A", tested.cv2:="C"]
 ## remap A, B -> C, D for trait two, then map back
 results[NCV=="twotwo" & tested.cv2=="B", tested.cv2:="D"]
 results[NCV=="twotwo" & tested.cv2=="A", tested.cv2:="C"]
@@ -67,13 +71,17 @@ setnames(results,
          gsub("PP.|.abf","",grep("PP",names(results),value=TRUE)))
 results[,special:=paste(NCV,special,sep="-")]
 
-sresults <- results[,.(h0=sum(H0),
-                       h1=sum(H1) + sum(H2),
-                       h3=sum(H3),
-                       h4=sum(H4)),by=c("f","isim","method","special")]
-m <- melt(sresults[,.(special,method,h0,h1,h3,h4)],
-          c("special","method"))
-m[,pc:=value/sum(value),by=c("special","method")]
+## options(digits=2)
+## results[special=="twotwo-4" & f=="cvaryr2-v10243847a51be35.RData" & r2.finemap %in% c(NA,0.01) & method %in% c("single","cond","mask") & isim==2,.(method,tested.cv,hit1,hit2,H3,H4, hit1.margz ,hit2.margz)]
+## results[special=="twotwo-4" & f=="cvaryr2-v10243847a51be35.RData" & isim==3 & r2.finemap %in% c(NA,0.01) & method %in% c("single","cond","mask") ,.(method,tested.cv,hit1,hit2,H3,H4, hit1.margz ,hit2.margz,r2.cvA1.hits,r2.cvA2.hits,r2.cvB1.hits,r2.cvB2.hits,r2.tr1)]
+
+## sresults <- results[,.(h0=sum(H0),
+##                        h1=sum(H1) + sum(H2),
+##                        h3=sum(H3),
+##                        h4=sum(H4)),by=c("f","isim","method","special")]
+## m <- melt(sresults[,.(special,method,h0,h1,h3,h4)],
+##           c("special","method"))
+## m[,pc:=value/sum(value),by=c("special","method")]
   library(viridis)
 library(ggplot2)
 library(ggpubr)
@@ -92,29 +100,24 @@ library(ggpubr)
 ## step want H4=1, H3=3?
 ## 0 = share 0
 
-byvars <- c("special","method","tested.cv","r2.finemap","r2.process","ld","pwr")
-## number of datasets
-results[abs(hit1.margz)>4.89 & abs(hit2.margz)>4.89,
-        ndata:=length(unique(paste(f,isim))),by=setdiff(byvars,"tested.cv")]
-
-
 ## total conclusions
 library(cowplot)
-byvars <- c("special","method","tested.cv","r2.finemap","r2.process","ld","pwr")
+byvars <- c("special","method","tested.cv","r2.finemap","r2.process") #,"ld")
 byvars <- setdiff(byvars,"tested.cv")
-kk <- results[#abs(hit1.margz)>4.89 & abs(hit2.margz)>4.89#NCV=="onetwo"
-            , .(h0=sum(H0),h1=sum(H1),h2=sum(H2),h3=sum(H3),h4=sum(H4)),by=c(byvars,"f","isim","ndata")]
-kk <- kk[, .(N=.N,h0=sum(h0),h1=sum(h1),h2=sum(h2),h3=sum(h3),h4=sum(h4)), by=c("ndata",byvars)]
+kk <- results[abs(hit1.margz)>4.89 & abs(hit2.margz)>4.89#NCV=="onetwo"
+            , .(h0=sum(H0),h1=sum(H1),h2=sum(H2),h3=sum(H3),h4=sum(H4)),by=c(byvars,"f","isim")]
+kk <- kk[, .(ndata=length(unique(paste(f,isim))),N=.N,h0=sum(h0),h1=sum(h1),h2=sum(h2),h3=sum(h3),h4=sum(h4)), by=c(byvars)]
 kk[,c("h0","h1","h2","h3","h4"):=list(h0/ndata,h1/ndata,h2/ndata,h3/ndata,h4/ndata)]
 m <- melt(kk,c(byvars,"N","ndata"))
-m <- m[method %in% c("single","cond","mask","condmask","maskcond") & (is.na(r2.finemap) |r2.finemap==0.01),]
+## m <- m[method %in% c("single","cond","mask","condmask","maskcond") & (is.na(r2.finemap) |r2.finemap==0.01),]
+m <- m[method %in% c("single","cond","mask") , ]
 ## m[,method:=factor(method,levels=c("single","cond","condmask","mask"))]
-m[,x:=paste(ld,pwr)]
+m[,x:="x"] #paste(ld)]
 p.total <- ggplot(m,#!grepl("?",tested.cv,fixed=TRUE) &
 ## (r2.finemap==0.01|method %in% c("s),],
                   aes(x=x,#paste(method,r2.finemap),
                       y=value,fill=variable)) + geom_col() +
-  facet_grid(special ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  facet_grid(special ~ method + r2.finemap ,space="free_x",scales="free_x") + theme_pubr() +
   ## facet_grid(special ~ ld,space="free_x",scales="free_x") + theme_pubr() +
   scale_fill_viridis_d("hypoth.") +
   ylab("Avg. posterior") +
@@ -127,9 +130,12 @@ p.total <- ggplot(m,#!grepl("?",tested.cv,fixed=TRUE) &
         )
 p.total
 
+m[special=="twotwo-4",]
+m[special=="twotwo-4",sum(value),by=byvars]
 
 ## number tested - need r2.finemap close to 0.1 to get similar numbers to conditional
 byvars <- c("special","method","tested.cv","r2.finemap","r2.process","ld")
+results[,ndata:= length(unique(paste(f,isim))), by=setdiff(byvars,"tested.cv")]
 kk <- results[abs(hit1.margz)>4.89 & abs(hit2.margz)>4.89#NCV=="onetwo"
             , .(N=.N,h0=sum(H0),h1=sum(H1),h2=sum(H2),h3=sum(H3),h4=sum(H4)), by=c("ndata",byvars)]
 kk[,c("h0","h1","h2","h3","h4"):=list(h0/ndata,h1/ndata,h2/ndata,h3/ndata,h4/ndata)]
@@ -151,26 +157,178 @@ kk[,c("h0","h1","h2","h3","h4"):=list(h0/ndata,h1/ndata,h2/ndata,h3/ndata,h4/nda
 ##         )
 ## p.r
 
-## average result
+## vary r2
 m <- melt(kk,c(byvars,"N","ndata"))
 m[,method:=factor(method,levels=unique(data$method))] #c("single","cond","condmask","mask"))]
 m <- m[method %in% c("single","cond","mask","condmask","maskcond") ## & ld=="lowld"
        & !grepl("?",tested.cv,fixed=TRUE),]
-p.r <- ggplot(m[is.na(r2.finemap) | r2.finemap %in% c(0.01,0.02,0.1),],#!grepl("?",tested.cv,fixed=TRUE) &
+## p.r <- ggplot(m[is.na(r2.finemap) | r2.finemap %in% c(0.01,0.02,0.1),],#!grepl("?",tested.cv,fixed=TRUE) &
+p.r <- ggplot(m[method %in% c("single","cond","mask"),],#!grepl("?",tested.cv,fixed=TRUE) &
 ## (r2.finemap==0.01|method %in% c("s),],
               aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
-  facet_grid(special  ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  facet_grid(special  ~ method + r2.finemap ,space="free_x",scales="free_x") + theme_pubr() +
   scale_fill_viridis_d("hyp.") +
   ylab("Avg. posterior") +
   xlab("Tested variants") +
   background_grid() +
   ylim(0,1.05) + 
+  theme_pubr() +
   theme(legend.position="right",
         panel.border=element_rect(linetype="solid",fill=NA),
         ## strip.text.y = element_blank(),
         axis.text.x = element_text(angle=-90)
         )
 p.r
+
+## pub plots
+m <- melt(kk,c(byvars,"N","ndata"))
+m[grepl("?",tested.cv,fixed=TRUE),tested.cv:="?"]
+m[,method:=factor(method,levels=unique(data$method))] #c("single","cond","condmask","mask"))]
+m[,ncv:=sub("-.*","",special)]
+m[,r2:=ifelse(method=="cond","cond",r2.finemap)]
+
+L <- lapply(0:3, function(spec) {
+ ggplot(m[method %in% c("cond","mask","single") & special==paste0("onetwo-",spec) & r2.finemap %in% c(NA,0.01),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limits=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+})
+p.1 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-onetwo.pdf",pp,base_height=w*8,base_width=w*6)
+
+
+L <- lapply(0:3, function(spec) {
+ ggplot(m[special==paste0("onetwo-",spec) & r2.finemap %in% c(NA,0.01),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limits=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+})
+p.1 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-onetwo-mixed.pdf",pp,base_height=w*8,base_width=w*6)
+
+L <- lapply(0:3, function(spec) {
+ ggplot(m[special==paste0("onetwo-",spec) & method %in% c("cond","mask"),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ r2 ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limits=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+})
+p.1 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-onetwo-r2.pdf",pp,base_height=w*8,base_width=w*6)
+## w <- 1.2
+## save_plot("~/coloc-gsk.pdf",p,base_height=w*6,base_width=w*8)
+
+
+L <- lapply(0:5, function(spec) {
+ ggplot(m[method %in% c("cond","mask","single") & special==paste0("twotwo-",spec) & r2.finemap %in% c(NA,0.01),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limits=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+ })
+p.2 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-twotwo.pdf",pp,base_height=w*8,base_width=w*6)
+
+
+L <- lapply(0:5, function(spec) {
+ ggplot(m[special==paste0("twotwo-",spec) & r2.finemap %in% c(NA,0.01),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ method ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limits=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+ })
+p.2 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-twotwo-mixed.pdf",pp,base_height=w*8,base_width=w*6)
+
+
+L <- lapply(0:5, function(spec) {
+ ggplot(m[special==paste0("twotwo-",spec) & method %in% c("cond","mask"),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
+  facet_grid(special  ~ r2 ,space="free_x",scales="free_x") + theme_pubr() +
+  scale_fill_viridis_d("hyp.") +
+  ylab("Avg. posterior") +
+  xlab("Tested variants") +
+  background_grid() +
+  scale_y_continuous(breaks=c(0,1),limit=c(0,1)) +
+  theme(legend.position="right",
+        panel.border=element_rect(linetype="solid",fill=NA),
+        strip.text.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=-90)
+        )
+ })
+p.2 <- plot_grid(plotlist=L,ncol=1)
+pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.2,0.8))
+w <- 1.2
+save_plot("~/fig-coloc-twotwo-r2.pdf",pp,base_height=w*8,base_width=w*6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## simplified version for talk
 kk <- results[method!="cond.manual" & !is.na(H0) & NCV=="onetwo" & tested.cv1!="?", .(h0=mean(H0),h1=mean(H1),h2=mean(H2),h3=mean(H3),h4=mean(H4)), by=c("special","method","tested.cv")]
@@ -191,36 +349,12 @@ L <- lapply(0:2, function(spec) {
 p.r <- plot_grid(plotlist=L,ncol=1)
 
 
-nspec <- 3
-nvar <- 3
-models <- data.table(special=rep((1:nspec)-1,each=nvar),
-                     vars=rep(c("A","B","C"),nspec),
-                     trait.1=c(1,2,0,
-                               2,1,0,
-                               1,2,0),
-                     trait.2=c(0,0,2,
-                               2,0,0,
-                               1,0,0))
-models <- melt(models,c("special","vars"))
-models[,variable:=sub("trait.","Trait ",variable)][,model:="model"]
-L2 <- lapply(0:2,function(spec) {
-    ggplot(models[special==spec,],aes(x=vars,y=value,fill=variable)) + geom_col(position="dodge") +
-      facet_grid(variable~model,scales="free_x",switch="y") + theme_pubr() +
-  xlab("causal variants") +
-  geom_text(aes(x=vars,label=variable),y=2.5,data=models[vars=="A",]) +
-  ylim(0,3) +
-  scale_fill_manual(values=c("Trait 1"="grey40","Trait 2"="grey60")) +
-  theme(axis.text.y = element_blank(),
-        axis.title.y=element_blank(),
-        axis.line.y=element_blank(),
-        axis.ticks.y=element_blank(),
-        panel.border=element_rect(linetype="solid",fill=NA),
-        strip.text.y = element_blank(),
-        legend.position="none")
-})
 
-p.l <- plot_grid(plotlist=L2,ncol=1)
-p <- plot_grid(p.l,p.r,nrow=1,rel_widths=c(0.2,0.8))
+plot_grid(p.l,p.r,nrow=1,rel_widths=c(0.2,0.8))
+
+
+
+pp <- plot_grid(p.l,p.r,nrow=1,rel_widths=c(0.2,0.8))
 
 w <- 1.2
 ## save_plot("~/coloc-gsk.pdf",p,base_height=w*6,base_width=w*8)
