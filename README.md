@@ -17,7 +17,7 @@ done
 
 ## wait...
 
-./coloc-vary-p12-collate.R
+./coloc-vary-p12-collate-v2.R
 ```
 
 ## Simulations to compare conditioning, masking, varying r2thr
@@ -45,7 +45,7 @@ for N in 1000 2000; do
 for NSNP in 250 750; do
     for ncv in 3 4; do
         for s in 0 1 2 3 4 5; do 
-            qR.rb  -a CWALLACE-SL2-CPU -p skylake-himem -r -y 1-100 ./coloc-mask-vary-r2-sim.R --args NSIM=20 SPECIAL=$s NCV=$ncv NSNP=$NSNP N=$N; 
+            qR.rb  -a CWALLACE-SL2-CPU -p skylake-himem -r -y 1-20 ./coloc-mask-vary-r2-sim.R --args NSIM=50 SPECIAL=$s NCV=$ncv NSNP=$NSNP N=$N; 
         done
     done
 done
@@ -55,7 +55,7 @@ for N in 1000 2000; do
 for NSNP in 250 750; do
     for ncv in 3 4; do
         for s in 0 1 2 3 4 5; do 
-            qR.rb  -c 2 -r -y 1-100 ./coloc-mask-vary-r2-sim.R --args NSIM=20 SPECIAL=$s NCV=$ncv ld=$ld; 
+            qR.rb  -c 2 -r -y 1-20 ./coloc-mask-vary-r2-sim.R --args NSIM=50 SPECIAL=$s NCV=$ncv; 
         done
     done
 done
@@ -63,35 +63,11 @@ done
 
 ## wait...
 
-./coloc-mask-vary-r2-collate.R
+./coloc-mask-vary-r2-collate-v2.R
 ```
 done
 
-## Model averaging - abandonned
-```{sh}
- for s in 0 1 2 3 4; do
- for n in 500 1000 2000; do qR.rb -r -y 1-10 ./coloc-avg-prior-sim.R --args SPECIAL=$s NSIM=1000 N=$n -j avg$s-$n;
- done
- done
-```
-quick check
-```{sh}
-qR.rb -r -y 0-5 -n SPECIAL ./coloc-cond-vs-indep-sim.R --args NSIM=100
-```
+## GTeX analysis - estimating the proportion of SNPs which are eQTL causal variants
 
-run
-```{sh}
-for s in 0 1 2 3 4 5; do qR.rb -r -y 1-50 ./coloc-cond-vs-indep-sim.R --args NSIM=200 SPECIAL=$s NCV=4; done
-for s in 0 1 2 3; do qR.rb -r -y 1-50 ./coloc-cond-vs-indep-sim.R --args NSIM=200 SPECIAL=$s NCV=3; done
-```
-```{sh}
-for s in 0 1 2 3 4 5; do qR.rb -r -y 1-10 ./coloc-cond-vs-indep-sim-v2.R --args NSIM=100 SPECIAL=$s NCV=4; done
-for s in 0 1 2; do qR.rb -r -y 1-10 ./coloc-cond-vs-indep-sim-v2.R --args NSIM=100 SPECIAL=$s NCV=3; done
-```
-
-
-plot results
-./coloc-cond-vs-indep-collate.R
-./coloc-cond-vs-indep-collate-v2.R
-
+qR.rb -r -t "04:00:00" ./gtex-finemap.R
 

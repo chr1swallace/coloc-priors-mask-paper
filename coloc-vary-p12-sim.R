@@ -164,6 +164,6 @@ results$ld <- args$ld
 results$pop <- args$pop
 results$NSNP <- args$NSNP
 
-patt <- "cvaryp12-v3"
+patt <- "cvaryp12-v4"
 tmp <- tempfile(tmpdir=d,pattern=patt,fileext=".RData")
 save(results,file=tmp)
