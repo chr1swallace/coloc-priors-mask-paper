@@ -22,6 +22,8 @@ done
 
 ## Simulations to compare conditioning, masking, varying r2thr
 
+Files: $COLOCINDEP/cvaryr2-v2*
+
 SPECIAL depends on NCV.
 
 **NCV=4: simulate two causal variants per trait**
@@ -40,24 +42,18 @@ SPECIAL depends on NCV.
 
 for ld in lowld highld; do
 ```{sh}
-ld=lowld
 for N in 1000 2000; do
-for NSNP in 250 750; do
+for ld in highld lowld; do
+for NSNP in 1000; do
     for ncv in 3 4; do
         for s in 0 1 2 3 4 5; do 
-            qR.rb  -a CWALLACE-SL2-CPU -p skylake-himem -r -y 1-20 ./coloc-mask-vary-r2-sim.R --args NSIM=50 SPECIAL=$s NCV=$ncv NSNP=$NSNP N=$N; 
+        qR.rb -c 2 -a CWALLACE-SL2-CPU -p skylake-himem -y 1-20 \
+		-j cm$s-$ncv-$N-$ld -r \
+		./coloc-mask-vary-r2-sim.R --args \
+		NSIM=50 SPECIAL=$s NCV=$ncv NSNP=$NSNP N=$N ld=$ld; 
         done
     done
 done
-done
-
-for N in 1000 2000; do
-for NSNP in 250 750; do
-    for ncv in 3 4; do
-        for s in 0 1 2 3 4 5; do 
-            qR.rb  -c 2 -r -y 1-20 ./coloc-mask-vary-r2-sim.R --args NSIM=50 SPECIAL=$s NCV=$ncv; 
-        done
-    done
 done
 done
 

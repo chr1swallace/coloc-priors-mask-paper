@@ -5,10 +5,11 @@ source("~/Projects/coloc-cond-mask/load-hapdata.R")
 library(randomFunctions)
 library(magrittr)
 devtools::load_all("~/RP/coloc")
-args <- getArgs(defaults=list(N=1000,NSIM=2,NCV=4,NSNP=500,SPECIAL=4,ld="highld",pop="eur"),
+args <- getArgs(defaults=list(N=1000,NSIM=2,NCV=4,NSNP=1000,SPECIAL=4,ld="highld",pop="eur"),
                 numeric=c("N","NSIM","NCV"))
+print(args)
 
-hdata <- hread(args$ld,args$pop)
+hdata <- readRDS(paste0("~/scratch/",args$ld,".RDS"))
 LD <- hdata$LD
 LD.alt <- hdata$LD.alt
 dfsnps <- hdata$snps
@@ -52,7 +53,7 @@ valmaxz <- function(D) {
     max(z)
 }
 
-R2 <- c(0.01,0.03,0.05,0.07,0.09,0.1)
+R2 <- c(0.01,0.02,0.04,0.05)
 
 addmethod <- function(L,meth,mode) {
     dt <- sapply(L, is.data.table)  %>% which()
@@ -179,37 +180,18 @@ runone <- function(isim=0) {
     ## indep analysis
     signals1 <- finemap.signals(A1,LD=LD,pthr=1e-6,maxhits=2)
     signals2 <- finemap.signals(A2,LD=LD,pthr=1e-6,maxhits=2)
-    if(!length(signals1[[1]]) || !length(signals2[[1]]))
+    if(!length(signals1[[1]]) || !length(signals2[[1]])) # only use datasets with both min p < 1e-6
         return(NULL)
-    dresults <- coloc.detail(A1,A2,p12=1e-6)  
+    dresults <- coloc.detail(A1,A2,p12=5e-6)  
     RESULTS <- vector("list",8)
     imm <- 1
-    methods <- list(c("mask","mask"),c("mask","mask"),    ## mask-mask with variable thresholds
-                 c("cond","mask"),c("cond","mask"),     ## cond-mask, variable thresholds
-                 c("mask","cond"),c("mask","cond"),     ## mask-cond, variable thresholds
-                 c("cond","cond"),c("cond","cond"))    ## cond-cond, no thresholds
-    modes <- rep(c("iterative","allbutone"),4)
+    methods <- list(c("mask","mask"),    ## mask-mask with variable thresholds
+                    c("cond","mask"),     ## cond-mask, variable thresholds
+                    c("mask","cond"),     ## mask-cond, variable thresholds
+                    c("cond","cond"))    ## cond-cond, no thresholds
+    modes <- rep(c("iterative"),4)
 
-    ## imm <- 1; msk <- coloc.signals(dataset1=c(A1,list(method=methods[[imm]][1])),
-    ##                                dataset2=c(A2,list(method=methods[[imm]][2])),
-    ##                                LD=LD,
-    ##                                p12=1e-6,pthr=1e-6,maxhits=2,r2thr=0.01,
-    ##                                mode=modes[[imm]])$summary
-    ## single <- coloc.process(dresults)$summary  %>% as.data.table()
-    ## single[,hit1:=names(signals1)[[1]]]
-    ## single[,hit2:=names(signals2)[[1]]]
-    ## single[,method:="single"]
-    ## z1 <- structure(A1$beta/sqrt(A1$varbeta),names=A1$snp)
-    ## z2 <- structure(A2$beta/sqrt(A2$varbeta),names=A2$snp)
-    ## single[,hit1.margz:=z1[hit1]]
-    ## single[,hit2.margz:=z2[hit2]]
-    ## rbind(msk,single,fill=TRUE)
-    
- ## imm=7;coloc.signals(A1,A2,LD=LD,method="cond",p12=1e-6,pthr=1e-6,maxhits=2,mode=modes[[imm]])$summary
-    ## imm=8;coloc.signals(A1,A2,LD=LD,method="cond",p12=1e-6,pthr=1e-6,maxhits=2,mode=modes[[imm]])$summary
-    ## dataset1=A1; dataset2=A2; method="cond"; p12=1e-6; p1 <- p2 <- 1e-4; maxhits=2; mode=modes[[imm]]; pthr <- 1e-6; r2thr <- 0.01
-    
-    for(imm in 1:8) {
+    for(imm in 1:4) {
     ## mask-mask with variable thresholds
         message(paste(c(methods[[imm]],modes[imm])))
         if(any(methods[[imm]]=="mask")) {
@@ -217,13 +199,13 @@ runone <- function(isim=0) {
                 coloc.signals(dataset1=c(A1,list(method=methods[[imm]][1])),
                               dataset2=c(A2,list(method=methods[[imm]][2])),
                               LD=LD,
-                              p12=1e-6,pthr=1e-6,maxhits=2,r2thr=r2,
+                              p12=5e-6,pthr=1e-6,maxhits=2,r2thr=r2,
                               mode=modes[[imm]])$summary %>%
                                                  cbind(.,r2.process=r2,r2.finemap=r2)
             })  %>% addmethod(paste(methods[[imm]],collapse=""),modes[[imm]])
         } else {
             ## cond-cond, no thresholds
-            cond <- coloc.signals(A1,A2,LD=LD,method="cond",p12=1e-6,pthr=1e-6,maxhits=2,mode=modes[[imm]])$summary
+            cond <- coloc.signals(A1,A2,LD=LD,method="cond",p12=5e-6,pthr=1e-6,maxhits=2,mode=modes[[imm]])$summary
             cond$method <- paste(methods[[imm]],collapse="")
             cond$mode  <- modes[[imm]]
             RESULTS[[imm]] <- cond
@@ -273,7 +255,7 @@ results[,N:=args$N]
 results$NSNP <- args$NSNP
 
 
-patt <- "cvaryr2-v2"
+patt <- "cvaryr2-v4"
 tmp <- tempfile(tmpdir=d,pattern=patt,fileext=".RData")
 save(results,file=tmp)
 
