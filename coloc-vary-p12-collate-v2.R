@@ -54,6 +54,13 @@ newdata <- lapply(c(1e-4,5e-5,1e-5,5e-6,1e-6,5e-7,1e-7,5e-8,1e-8), function(pp) 
 head(newdata)
 tail(newdata)
 
+## Jamie's question
+library(ggplot2)
+tmp=newdata[special==3,]
+ggplot(tmp, aes(x=factor(p12),y=PP.H4.abf)) + geom_boxplot()
+
+tmp[,.(prob.gt.0.9=mean(PP.H4.abf>0.9)),by=c("p12","N")]
+
 library(viridis)
 library(ggplot2)
 library(cowplot)
