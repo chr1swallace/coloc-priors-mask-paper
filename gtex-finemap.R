@@ -254,4 +254,5 @@ plot_grid(p,labels=c("a",""),ncol=1)
 
 w <- 1.2
 ggsave("~/fig-coloc-gtex.pdf",height=w*4,width=w*8/3)
+ggsave("~/fig-coloc-gtex.tiff",height=w*4,width=w*8/3)
 

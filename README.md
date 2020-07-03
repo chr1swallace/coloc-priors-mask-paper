@@ -67,3 +67,7 @@ done
 
 qR.rb -r -t "04:00:00" ./gtex-finemap.R
 
+## GWAS catalog analysis
+
+Rscript ./gwas-catalog.R
+

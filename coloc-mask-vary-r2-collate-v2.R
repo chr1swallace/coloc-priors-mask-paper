@@ -232,6 +232,7 @@ p.1 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
 ## pp
 save_plot("~/fig-coloc-onetwo.pdf",pp,base_height=8,base_width=8,scale=1.2)
+save_plot("~/fig-coloc-onetwo.tiff",pp,base_height=8,base_width=8,scale=1.2)
 
 L <- lapply(0:3, function(spec) {
  ggplot(m[special==paste0("onetwo-",spec) & method %in% c("condcond","maskmask"),], aes(x=tested.cv,y=value,fill=variable)) + geom_col() +
@@ -252,6 +253,7 @@ p.1 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
 ## pp
 save_plot("~/fig-coloc-onetwo-r2.pdf",pp,base_height=8,base_width=8,scale=1.2)#,base_height=w*16/3*1.5,base_width=w*6*1.5)
+save_plot("~/fig-coloc-onetwo-r2.tiff",pp,base_height=8,base_width=8,scale=1.2)#,base_height=w*16/3*1.5,base_width=w*6*1.5)
 
 
 ## w <- 1.2
@@ -277,6 +279,7 @@ p.2 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.2,0.8))
 ## pp
 save_plot("~/fig-coloc-twotwo.pdf",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*8,base_width=w*6)
+save_plot("~/fig-coloc-twotwo.tiff",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*8,base_width=w*6)
 
 
 L <- lapply(0:5, function(spec) {
@@ -298,6 +301,7 @@ p.2 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.1,0.9))
 ## pp
 save_plot("~/fig-coloc-twotwo-r2.pdf",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*1.5*8,base_width=w*1.5*6)
+save_plot("~/fig-coloc-twotwo-r2.tiff",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*1.5*8,base_width=w*1.5*6)
 
 
 
@@ -346,6 +350,7 @@ p.1 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.1,p.1,nrow=1,rel_widths=c(0.2,0.8))
 ## pp
 save_plot("~/fig-coloc-onetwo-cvr2.pdf",pp,base_height=8,base_width=8,scale=1.2)#,base_height=w*16/3,base_width=w*6)
+save_plot("~/fig-coloc-onetwo-cvr2.tiff",pp,base_height=8,base_width=8,scale=1.2)#,base_height=w*16/3,base_width=w*6)
 
 
 
@@ -371,6 +376,7 @@ p.2 <- plot_grid(plotlist=L,ncol=1)
 pp <- plot_grid(spec.2,p.2,nrow=1,rel_widths=c(0.2,0.8))
 ## pp
 save_plot("~/fig-coloc-twotwo-cvr2.pdf",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*16/3,base_width=w*6)
+save_plot("~/fig-coloc-twotwo-cvr2.tiff",pp,base_height=9,base_width=8,scale=1.2)#,base_height=w*16/3,base_width=w*6)
 
 
 

@@ -57,7 +57,7 @@ tail(newdata)
 ## Jamie's question
 library(ggplot2)
 tmp=newdata[special==3,]
-ggplot(tmp, aes(x=factor(p12),y=PP.H4.abf)) + geom_boxplot()
+## ggplot(tmp, aes(x=factor(p12),y=PP.H4.abf)) + geom_boxplot()
 
 tmp[,.(prob.gt.0.9=mean(PP.H4.abf>0.9)),by=c("p12","N")]
 
@@ -98,6 +98,8 @@ y[,sim:=paste0("sim: ",sim)]
 table(y$p12)
 y[,p12:=factor(p12,levels=lab12)]
 
+tiff(filename = "~/fig-coloc-vary-p12.tiff",
+     width = 8, height = 6*8/9, units = "in", res=300)
 ggplot(y,aes(x=x,y=post,fill=factor(hyp),col=factor(hyp))) +
   geom_col(position="stack") +
   facet_grid(sim~p12,labeller=label_parsed) +
@@ -112,5 +114,6 @@ ggplot(y,aes(x=x,y=post,fill=factor(hyp),col=factor(hyp))) +
         strip.text.y=element_text(size=10,face="bold"),
         strip.background = element_rect(linetype="blank",fill="white"))
   ## scale_x_log10()
+dev.off()
 
-ggsave("~/fig-coloc-vary-p12.pdf",height=6*8/9,width=8)
+## ggsave("~/fig-coloc-vary-p12.pdf",height=6*8/9,width=8)
